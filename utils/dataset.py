@@ -3,10 +3,9 @@ import os.path
 
 import torch
 import torch.utils.data as data
+from binvox_rw import read_as_3d_array
 from numpy import random
 from PIL import Image
-
-from binvox_rw import read_as_3d_array
 
 IMG_EXTENSIONS = [
     ".jpg",
@@ -168,6 +167,9 @@ class R2N2Dataset(data.Dataset):
             pass
 
         return {"imgs": imgs, "label": label}
+
+        # In training loop, if using single-view:
+        # images = batch['imgs'].squeeze(1)  # Remove view dimension if needed
 
     def __len__(self):
         return len(self.im_list)
