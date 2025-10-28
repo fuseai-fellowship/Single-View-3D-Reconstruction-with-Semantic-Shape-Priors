@@ -1,0 +1,5 @@
+ConfigArgParse
+Pillow
+numpy
+tensorboardX
+matplotlib
