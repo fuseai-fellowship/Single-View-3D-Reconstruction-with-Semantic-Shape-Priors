@@ -58,8 +58,8 @@ class VoxelTripletLoss(nn.Module):
 
     def __init__(self):
         super(VoxelTripletLoss, self).__init__()
-        self.margin = cfg.MARGIN  # alpha
-        self.beta = cfg.BETA  # Sv threshold
+        self.margin = cfg.TRIPLET_MARGIN  # alpha
+        self.beta = cfg.TRIPLET_BETA     # Sv threshold
 
         # We need a similarity metric for 3D shapes (Sv)
         # Using the one from the paper: Sv(V, Vi) = 1 - MSE(V, Vi)

@@ -34,6 +34,7 @@ DECODER_PROB_THRESHOLD = 0.5  # To binarize the sigmoid activation
 TRAIN_SPLIT = [0, 0.7]
 VAL_SPLIT = [0.7, 0.9]
 TEST_SPLIT = [0.9, 1.0]
+SAVE_PERIOD = 5
 
 # Optimizer (Section 4.2)
 LEARNING_RATE = 0.001  # 1e-3
@@ -56,6 +57,7 @@ NUM_WORKERS = 4  # Number of parallel workers for data loading
 DATA_DIR = "./ShapeNet"
 MODEL_SAVE_PATH = "./checkpoints/"
 LOG_DIR = "./logs/"
+
 
 
 # import argparse

@@ -55,7 +55,7 @@ class Mem3DTrainer:
             print("TensorBoard not installed. Skipping logging.")
 
         # --- Memory Writer Threshold (delta) ---
-        self.delta = cfg.DELTA
+        self.delta = cfg.MEMORY_DELTA
 
     def _calculate_sv_batch(self, V_batch, V_memory_batch):
         """Calculates Sv for batches, not the whole memory."""
@@ -162,7 +162,7 @@ class Mem3DTrainer:
         total_recon_loss = 0.0
         total_triplet_loss = 0.0
 
-        pbar = tqdm(self.train_loader, desc=f"Epoch {epoch + 1}/{cfg.EPOCHS} [Train]")
+        pbar = tqdm(self.train_loader, desc=f"Epoch {epoch + 1}/{cfg.NUM_EPOCHS} [Train]")
 
         for batch in pbar:
             # Dataset compatibility: expect keys 'imgs' and 'label' (utils.dataset.R2N2Dataset)
@@ -191,7 +191,7 @@ class Mem3DTrainer:
                 self.model.memory_module.memory_values,
             )
 
-            loss = triplet_loss + cfg.LAMBDA_RECON * recon_loss
+            loss = triplet_loss + cfg.LOSS_LAMBDA * recon_loss
 
             # --- Backward Pass & Optimization ---
             self.optimizer.zero_grad()
@@ -234,7 +234,7 @@ class Mem3DTrainer:
         total_recon_loss = 0.0
         # We don't typically calculate triplet loss or update memory in val
 
-        pbar = tqdm(self.val_loader, desc=f"Epoch {epoch + 1}/{cfg.EPOCHS} [Val]")
+        pbar = tqdm(self.val_loader, desc=f"Epoch {epoch + 1}/{cfg.NUM_EPOCHS} [Val]")
 
         with torch.no_grad():
             for batch in pbar:
@@ -269,7 +269,7 @@ class Mem3DTrainer:
         print("--- Starting Training ---")
         best_val_loss = float("inf")
 
-        for epoch in range(cfg.EPOCHS):
+        for epoch in range(cfg.NUM_EPOCHS):
             self._train_epoch(epoch)
             val_loss = self._val_epoch(epoch)
 
