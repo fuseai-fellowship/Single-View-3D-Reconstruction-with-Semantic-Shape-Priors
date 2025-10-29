@@ -4,6 +4,7 @@ from torchvision import transforms
 
 IMG_SIZE = 224
 IMG_CHANNELS = 3
+MAX_VIEWS = 1
 INPUT_IMG_TRANSFORM = transforms.Compose(
     [
         transforms.Resize(IMG_SIZE),
@@ -28,6 +29,11 @@ DECODER_INPUT_DIM = ENCODER_FEATURE_DIM + LSTM_HIDDEN_DIM
 VOXEL_RES = 32  # Final 32x32x32 output
 
 # --- Training ---
+# Train - Val - Test Split
+TRAIN_SPLIT = [0, 0.7]
+VAL_SPLIT = [0.7, 0.9]
+TEST_SPLIT = [0.9, 1.0]
+
 # Optimizer (Section 4.2)
 LEARNING_RATE = 0.001  # 1e-3
 ADAM_BETA1 = 0.9
@@ -46,7 +52,7 @@ DEVICE = "cuda"  # "cuda" or "cpu"
 BATCH_SIZE = 32  # (Section 4.2)
 NUM_EPOCHS = 300
 NUM_WORKERS = 4  # Number of parallel workers for data loading
-DATA_DIR = "/data"  # TODO: Update this path
+DATA_DIR = "./ShapeNet"
 MODEL_SAVE_PATH = "./checkpoints/"
 LOG_DIR = "./logs/"
 
