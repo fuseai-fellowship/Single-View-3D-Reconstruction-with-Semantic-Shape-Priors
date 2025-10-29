@@ -93,19 +93,19 @@ class Encoder(nn.Module):
         self.custom_conv3 = nn.Sequential(
             nn.Conv2d(
                 in_channels=256,
-                out_channels=cfg.FEATURE_DIM,
+                out_channels=cfg.ENCODER_FEATURE_DIM,
                 kernel_size=3,
                 stride=1,
                 padding=1,
             ),  # cfg.FEATURE_DIM = 256
-            nn.BatchNorm2d(cfg.FEATURE_DIM),
+            nn.BatchNorm2d(cfg.ENCODER_FEATURE_DIM),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),  # kernel 2x2
         )
         # Output: (B, 256, 7, 7)
 
         # Final fully connected layer to flatten and create the feature vector
-        self.fc = nn.Linear(cfg.FEATURE_DIM * 7 * 7, cfg.FEATURE_DIM)
+        self.fc = nn.Linear(cfg.ENCODER_FEATURE_DIM * 7 * 7, cfg.ENCODER_FEATURE_DIM)
 
     def forward(self, x):
         # x shape: (B, 3, 224, 224)

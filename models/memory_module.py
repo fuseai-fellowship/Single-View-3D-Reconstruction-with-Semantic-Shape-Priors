@@ -16,7 +16,7 @@ class MemoryModule(nn.Module):
         super(MemoryModule, self).__init__()
 
         self.memory_size = cfg.MEMORY_SIZE
-        self.feature_dim = cfg.FEATURE_DIM
+        self.feature_dim = cfg.ENCODER_FEATURE_DIM
         self.voxel_res = cfg.VOXEL_RES
         self.top_k = cfg.TOP_K_MEMORY
 
@@ -126,7 +126,7 @@ if __name__ == '__main__':
     memory = MemoryModule().to(cfg.DEVICE)
     
     # Create dummy image features
-    test_features = torch.randn(cfg.BATCH_SIZE, cfg.FEATURE_DIM).to(cfg.DEVICE)
+    test_features = torch.randn(cfg.BATCH_SIZE, cfg.ENCODER_FEATURE_DIM).to(cfg.DEVICE)
     
     # Test the read operation
     print("Testing memory read...")

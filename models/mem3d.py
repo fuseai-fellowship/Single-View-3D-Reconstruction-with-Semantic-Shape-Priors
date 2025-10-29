@@ -89,7 +89,7 @@ if __name__ == '__main__':
     print(f"Output retrieved_scores shape: {scores.shape}")
     
     assert final_shape.shape == (cfg.BATCH_SIZE, cfg.VOXEL_RES, cfg.VOXEL_RES, cfg.VOXEL_RES)
-    assert image_feature.shape == (cfg.BATCH_SIZE, cfg.FEATURE_DIM)
+    assert image_feature.shape == (cfg.BATCH_SIZE, cfg.ENCODER_FEATURE_DIM)
     assert indices.shape == (cfg.BATCH_SIZE, cfg.TOP_K_MEMORY)
     assert scores.shape == (cfg.BATCH_SIZE, cfg.TOP_K_MEMORY)
     
