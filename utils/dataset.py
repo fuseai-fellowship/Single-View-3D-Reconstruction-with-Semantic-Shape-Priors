@@ -3,9 +3,10 @@ import os.path
 
 import torch
 import torch.utils.data as data
-from binvox_rw import read_as_3d_array
 from numpy import random
 from PIL import Image
+
+from .binvox_rw import read_as_3d_array
 
 IMG_EXTENSIONS = [
     ".jpg",
