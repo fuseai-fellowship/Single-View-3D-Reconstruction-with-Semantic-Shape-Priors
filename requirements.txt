@@ -3,3 +3,5 @@ Pillow
 numpy
 tensorboardX
 matplotlib
+streamlit
+plotly
