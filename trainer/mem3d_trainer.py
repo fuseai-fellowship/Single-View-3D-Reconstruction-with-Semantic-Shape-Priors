@@ -6,6 +6,7 @@ including the crucial Memory Writer logic.
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -14,7 +15,6 @@ import numpy as np
 
 import config as cfg
 from models.mem3d import Mem3D
-from data.dataset_mem3d import ShapeNetDataset # We'll need this type hint
 from utils.losses import ReconstructionLoss, VoxelTripletLoss
 
 class Mem3DTrainer:
@@ -53,15 +53,14 @@ class Mem3DTrainer:
             
         # --- Memory Writer Threshold (delta) ---
         self.delta = cfg.DELTA
-        # We need a metric for Sv
-        self.sv_metric = nn.MSELoss(reduction='none') # For pairwise Sv
+        # No additional Sv metric object needed; computed directly where required
 
 
     def _calculate_sv_batch(self, V_batch, V_memory_batch):
         """Calculates Sv for batches, not the whole memory."""
         # V_batch: (B, res, res, res)
         # V_memory_batch: (B, res, res, res)
-        # Flatten
+        # Flatten to (B, -1)
         v_batch_flat = V_batch.view(V_batch.shape[0], -1)
         v_mem_flat = V_memory_batch.view(V_memory_batch.shape[0], -1)
         
@@ -164,8 +163,24 @@ class Mem3DTrainer:
         pbar = tqdm(self.train_loader, desc=f"Epoch {epoch+1}/{cfg.EPOCHS} [Train]")
         
         for batch in pbar:
-            images = batch['image'].to(cfg.DEVICE)
-            true_voxels = batch['voxel'].to(cfg.DEVICE)
+            # Dataset compatibility: expect keys 'imgs' and 'label' (utils.dataset.R2N2Dataset)
+            if 'imgs' in batch:
+                imgs = batch['imgs'].to(cfg.DEVICE)
+                # If multiple views are present (B, V, C, H, W), use the first view
+                if imgs.dim() == 5:
+                    images = imgs[:, 0, ...]
+                else:
+                    images = imgs
+            else:
+                images = batch['image'].to(cfg.DEVICE)
+
+            if 'label' in batch:
+                true_voxels = batch['label'].to(cfg.DEVICE)
+            else:
+                true_voxels = batch['voxel'].to(cfg.DEVICE)
+
+            # Ensure voxel tensors are float in [0,1] for BCE
+            true_voxels = true_voxels.float()
             
             # --- Forward Pass ---
             final_shape, image_feature, _, _ = self.model(images)
@@ -176,8 +191,8 @@ class Mem3DTrainer:
             triplet_loss = self.triplet_loss_fn(
                 image_feature,
                 true_voxels,
-                self.model.memory_module.keys,
-                self.model.memory_module.values
+                self.model.memory_module.memory_keys,
+                self.model.memory_module.memory_values,
             )
             
             loss = triplet_loss + cfg.LAMBDA_RECON * recon_loss
@@ -225,8 +240,21 @@ class Mem3DTrainer:
         
         with torch.no_grad():
             for batch in pbar:
-                images = batch['image'].to(cfg.DEVICE)
-                true_voxels = batch['voxel'].to(cfg.DEVICE)
+                if 'imgs' in batch:
+                    imgs = batch['imgs'].to(cfg.DEVICE)
+                    if imgs.dim() == 5:
+                        images = imgs[:, 0, ...]
+                    else:
+                        images = imgs
+                else:
+                    images = batch['image'].to(cfg.DEVICE)
+
+                if 'label' in batch:
+                    true_voxels = batch['label'].to(cfg.DEVICE)
+                else:
+                    true_voxels = batch['voxel'].to(cfg.DEVICE)
+
+                true_voxels = true_voxels.float()
                 
                 # --- Forward Pass ---
                 final_shape, _, _, _ = self.model(images)
