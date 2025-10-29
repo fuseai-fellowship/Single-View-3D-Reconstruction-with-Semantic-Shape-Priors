@@ -19,7 +19,7 @@ from utils.losses import ReconstructionLoss, VoxelTripletLoss
 
 class Mem3DTrainer:
     def __init__(self, model: Mem3D, train_loader: DataLoader, val_loader: DataLoader):
-        self.model = model.to(cfg.DEVICE)
+        self.model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
 
@@ -40,8 +40,8 @@ class Mem3DTrainer:
         self.scheduler = optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda)
 
         # --- Loss Functions ---
-        self.recon_loss_fn = ReconstructionLoss().to(cfg.DEVICE)
-        self.triplet_loss_fn = VoxelTripletLoss().to(cfg.DEVICE)
+        self.recon_loss_fn = ReconstructionLoss() 
+        self.triplet_loss_fn = VoxelTripletLoss() 
 
         # --- Logging ---
         self.log_dir = cfg.LOG_DIR
@@ -68,6 +68,47 @@ class Mem3DTrainer:
         mse = torch.mean((v_batch_flat - v_mem_flat) ** 2, dim=1)  # Shape (B)
         sv_scores = 1.0 - mse
         return sv_scores  # Shape (B)
+    
+    def _calculate_iou(self, pred_voxels, true_voxels):
+        """
+        Calculates the Intersection over Union (IoU) metric based on 
+        the paper's formula (Eq. 15).
+        
+        Args:
+            pred_voxels (Tensor): (B, 1, res, res, res) - Model's raw sigmoid output
+            true_voxels (Tensor): (B, res, res, res) - Ground truth
+        """
+        # Ensure pred_voxels is (B, res, res, res)
+        if pred_voxels.dim() == 5:
+            pred_voxels = pred_voxels.squeeze(1)
+            
+        # The paper's threshold is t=0.3
+        t = 0.3
+        
+        # 1. Binarize the prediction: I(p(i, j, k) > t)
+        pred_binary = (pred_voxels > t).float()
+        
+        # 2. Ground truth is already binary: I(gt(i, j, k))
+        gt_binary = true_voxels.float()
+        
+        # 3. Calculate Intersection: (numerator of Eq. 15)
+        # P(i,j,k) I(p(i, j, k) > t) * I(gt(i, j, k))
+        # This is just where both are 1.
+        # Sum over all voxel dimensions (1, 2, 3)
+        intersection = (pred_binary * gt_binary).sum(dim=(1, 2, 3)) 
+        
+        # 4. Calculate Union: (denominator of Eq. 15)
+        # P(i,j,k) I[I(p(i, j, k) > t) + I(gt(i, j, k))]
+        # This is where *either* is 1. We can find this by:
+        # I(A) + I(B) - I(A and B)
+        union = pred_binary.sum(dim=(1, 2, 3)) + gt_binary.sum(dim=(1, 2, 3)) - intersection
+        
+        # 5. Calculate IoU per item in batch
+        # Add epsilon to avoid division by zero
+        iou = (intersection + 1e-6) / (union + 1e-6)
+        
+        # Return the average IoU *for this batch*
+        return iou.mean().item()
 
     def _memory_writer(self, image_features, true_voxels):
         """
@@ -166,14 +207,14 @@ class Mem3DTrainer:
 
         for batch in pbar:
             # Dataset compatibility: expect keys 'imgs' and 'label' (utils.dataset.R2N2Dataset)
-            imgs = batch["imgs"].to(cfg.DEVICE)
+            imgs = batch["imgs"]
             # If multiple views are present (B, V, C, H, W), use the first view
             if imgs.dim() == 5:
                 images = imgs[:, 0, ...]
             else:
                 images = imgs
 
-            true_voxels = batch["label"].to(cfg.DEVICE)
+            true_voxels = batch["label"] 
 
             # Ensure voxel tensors are float in [0,1] for BCE
             true_voxels = true_voxels.float()
@@ -230,64 +271,74 @@ class Mem3DTrainer:
         )
 
     def _val_epoch(self, epoch):
-        self.model.eval()  # Set model to evaluation mode
+        self.model.eval() # Set model to evaluation mode
         total_recon_loss = 0.0
-        # We don't typically calculate triplet loss or update memory in val
-
-        pbar = tqdm(self.val_loader, desc=f"Epoch {epoch + 1}/{cfg.NUM_EPOCHS} [Val]")
-
+        total_iou = 0.0  # <-- ADDED
+        
+        pbar = tqdm(self.val_loader, desc=f"Epoch {epoch+1}/{cfg.NUM_EPOCHS} [Val]")
+        
         with torch.no_grad():
             for batch in pbar:
-                imgs = batch["imgs"].to(cfg.DEVICE)
-                if imgs.dim() == 5:
-                    images = imgs[:, 0, ...]
-                else:
-                    images = imgs
-
-                true_voxels = batch["label"].to(cfg.DEVICE)
-
-                true_voxels = true_voxels.float()
-
+                images = batch['image'] .to(torch.device(cfg.DEVICE))
+                true_voxels = batch['voxel'] .to(torch.device(cfg.DEVICE))
+                
                 # --- Forward Pass ---
                 final_shape, _, _, _ = self.model(images)
-
+                
                 # --- Calculate Loss ---
                 recon_loss = self.recon_loss_fn(final_shape, true_voxels)
-
+                
+                # --- Calculate Metrics (NEW) ---
+                iou = self._calculate_iou(final_shape, true_voxels) # <-- ADDED
+                
                 total_recon_loss += recon_loss.item()
-                pbar.set_postfix(Recon=f"{recon_loss.item():.4f}")
+                total_iou += iou  # <-- ADDED
+                
+                pbar.set_postfix(
+                    Recon=f"{recon_loss.item():.4f}",
+                    IoU=f"{iou:.4f}" # <-- ADDED
+                )
 
         avg_recon_loss = total_recon_loss / len(self.val_loader)
-
+        avg_iou = total_iou / len(self.val_loader) # <-- ADDED
+        
         if self.writer:
-            self.writer.add_scalar("Loss/val_recon", avg_recon_loss, epoch)
+            self.writer.add_scalar('Loss/val_recon', avg_recon_loss, epoch)
+            self.writer.add_scalar('Metric/val_IoU', avg_iou, epoch) # <-- ADDED
+            
+        # <-- MODIFIED
+        print(f"Epoch {epoch+1} Val Avg Recon Loss: {avg_recon_loss:.4f} | Val Avg IoU: {avg_iou:.4f}")
+        return avg_recon_loss, avg_iou # <-- MODIFIED
+    # <<< --- END OF MODIFICATION ---
 
-        print(f"Epoch {epoch + 1} Val Avg Recon Loss: {avg_recon_loss:.4f}")
-        return avg_recon_loss
-
+    
     def fit(self):
         print("--- Starting Training ---")
-        best_val_loss = float("inf")
-
+        best_val_iou = 0.0  # <-- MODIFIED (was best_val_loss)
+        
+        # Ensure model save path exists
+        os.makedirs(cfg.MODEL_SAVE_PATH, exist_ok=True)
+        
         for epoch in range(cfg.NUM_EPOCHS):
             self._train_epoch(epoch)
-            val_loss = self._val_epoch(epoch)
-
-            self.scheduler.step()  # Update learning rate
-
-            # --- Save Checkpoint (Best Model) ---
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                save_path = os.path.join(self.log_dir, "best_model.pth")
+            val_loss, val_iou = self._val_epoch(epoch) # <-- MODIFIED
+            
+            self.scheduler.step() # Update learning rate
+            
+            # --- Save Checkpoint (Best Model based on IoU) ---
+            if val_iou > best_val_iou: # <-- MODIFIED
+                best_val_iou = val_iou # <-- MODIFIED
+                save_path = os.path.join(cfg.MODEL_SAVE_PATH, "best_model.pth") # Use config path
                 torch.save(self.model.state_dict(), save_path)
-                print(f"Saved new best model to {save_path} (Val Loss: {val_loss:.4f})")
-
+                print(f"Saved new best model to {save_path} (Val IoU: {val_iou:.4f})") # <-- MODIFIED
+            
             # --- Save Checkpoint (Periodic) ---
-            if (epoch + 1) % cfg.SAVE_PERIOD == 0:
-                save_path = os.path.join(self.log_dir, f"model_epoch_{epoch + 1}.pth")
+            # Use '%' for modulo, '==' for comparison
+            if (epoch + 1) % cfg.SAVE_PERIOD == 0: 
+                save_path = os.path.join(cfg.MODEL_SAVE_PATH, f"model_epoch_{epoch+1}.pth") # Use config path
                 torch.save(self.model.state_dict(), save_path)
                 print(f"Saved checkpoint to {save_path}")
-
+                
         if self.writer:
             self.writer.close()
         print("--- Training Finished ---")
