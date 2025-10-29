@@ -27,6 +27,7 @@ LSTM_NUM_LAYERS = 1  # (Section 3.3)
 # Input dim is image_feature + shape_prior_vector
 DECODER_INPUT_DIM = ENCODER_FEATURE_DIM + LSTM_HIDDEN_DIM
 VOXEL_RES = 32  # Final 32x32x32 output
+DECODER_PROB_THRESHOLD = 0.5  # To binarize the sigmoid activation
 
 # --- Training ---
 # Train - Val - Test Split
