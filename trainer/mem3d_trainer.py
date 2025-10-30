@@ -19,7 +19,7 @@ from utils.losses import ReconstructionLoss, VoxelTripletLoss
 
 class Mem3DTrainer:
     def __init__(self, model: Mem3D, train_loader: DataLoader, val_loader: DataLoader):
-        self.model = model
+        self.model = model.to(torch.device(cfg.DEVICE)) 
         self.train_loader = train_loader
         self.val_loader = val_loader
 
@@ -40,8 +40,8 @@ class Mem3DTrainer:
         self.scheduler = optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda)
 
         # --- Loss Functions ---
-        self.recon_loss_fn = ReconstructionLoss() 
-        self.triplet_loss_fn = VoxelTripletLoss() 
+        self.recon_loss_fn = ReconstructionLoss().to(torch.device(cfg.DEVICE)) 
+        self.triplet_loss_fn = VoxelTripletLoss().to(torch.device(cfg.DEVICE))
 
         # --- Logging ---
         self.log_dir = cfg.LOG_DIR
@@ -131,9 +131,7 @@ class Mem3DTrainer:
         # --- Step 1: Find best key similarity (Sk) for each item in batch ---
         # n1 = arg max_i Sk(F, Ki)
         # cos_sim shape: (B, M)
-        cos_sim = F.cosine_similarity(
-            F_batch.unsqueeze(1), memory_keys.unsqueeze(0), dim=2
-        )
+        cos_sim = F.cosine_similarity(F_batch.unsqueeze(1), memory_keys.unsqueeze(0),dim=2)
         best_sk_scores, n1_indices = torch.max(cos_sim, dim=1)  # Shape (B)
 
         # --- Step 2: Get the corresponding values (Vn1) and calculate Sv ---
@@ -207,14 +205,14 @@ class Mem3DTrainer:
 
         for batch in pbar:
             # Dataset compatibility: expect keys 'imgs' and 'label' (utils.dataset.R2N2Dataset)
-            imgs = batch["imgs"]
+            imgs = batch["imgs"].to(torch.device(cfg.DEVICE))
             # If multiple views are present (B, V, C, H, W), use the first view
             if imgs.dim() == 5:
                 images = imgs[:, 0, ...]
             else:
                 images = imgs
 
-            true_voxels = batch["label"] 
+            true_voxels = batch["label"].to(torch.device(cfg.DEVICE))
 
             # Ensure voxel tensors are float in [0,1] for BCE
             true_voxels = true_voxels.float()
@@ -279,8 +277,8 @@ class Mem3DTrainer:
         
         with torch.no_grad():
             for batch in pbar:
-                images = batch['image'] .to(torch.device(cfg.DEVICE))
-                true_voxels = batch['voxel'] .to(torch.device(cfg.DEVICE))
+                images = batch['imgs'] .to(torch.device(cfg.DEVICE))
+                true_voxels = batch['label'] .to(torch.device(cfg.DEVICE))
                 
                 # --- Forward Pass ---
                 final_shape, _, _, _ = self.model(images)

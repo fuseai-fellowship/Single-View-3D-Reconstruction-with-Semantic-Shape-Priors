@@ -123,10 +123,10 @@ class MemoryModule(nn.Module):
 
 if __name__ == '__main__':
     # Test the memory module
-    memory = MemoryModule().to(cfg.DEVICE)
+    memory = MemoryModule().to(torch.device(cfg.DEVICE))
     
     # Create dummy image features
-    test_features = torch.randn(cfg.BATCH_SIZE, cfg.ENCODER_FEATURE_DIM).to(cfg.DEVICE)
+    test_features = torch.randn(cfg.BATCH_SIZE, cfg.ENCODER_FEATURE_DIM).to(torch.device(cfg.DEVICE))
     
     # Test the read operation
     print("Testing memory read...")

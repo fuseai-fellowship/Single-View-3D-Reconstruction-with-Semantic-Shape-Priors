@@ -43,6 +43,10 @@ class Mem3D(nn.Module):
                                        Shape: (B, K)
         """
         
+        # Handle possible multi-view input (B, V, C, H, W) by selecting first view
+        if image.dim() == 5:
+            image = image[:, 0, ...]
+
         # 1. Encode the input image to get a feature vector
         # Shape: (B, feature_dim)
         image_feature = self.image_encoder(image)
@@ -73,9 +77,9 @@ if __name__ == '__main__':
     # Test the full Mem3D model forward pass
     
     # Create a dummy batch of images
-    dummy_images = torch.randn(cfg.BATCH_SIZE, 3, cfg.IMG_SIZE, cfg.IMG_SIZE).to(cfg.DEVICE)
+    dummy_images = torch.randn(cfg.BATCH_SIZE, 3, cfg.IMG_SIZE, cfg.IMG_SIZE).to(torch.device(cfg.DEVICE))
     
-    model = Mem3D().to(cfg.DEVICE)
+    model = Mem3D().to(torch.device(cfg.DEVICE))
     model.eval() # Set to eval mode for testing
     
     print(f"Input image shape: {dummy_images.shape}")
