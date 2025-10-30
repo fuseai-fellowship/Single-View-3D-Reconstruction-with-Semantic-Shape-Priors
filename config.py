@@ -15,7 +15,7 @@ INPUT_IMG_TRANSFORM = transforms.Compose(
 ENCODER_FEATURE_DIM = 256  # Output of the Image Encoder (Section 3.3)
 
 # Memory Module (Section 3.1 & 4.2)
-MEMORY_SIZE = 4000  # m (Section 4.2)
+MEMORY_SIZE = 4  # m (Section 4.2)
 TOP_K_MEMORY = 3  # k (Hyperparameter for how many shapes to retrieve)
 
 # LSTM Shape Encoder (Section 3.2 & 3.3)
@@ -51,9 +51,9 @@ MEMORY_DELTA = 0.90  # delta (Section 4.2)
 
 # --- Runtime ---
 DEVICE = "cuda"  # "cuda" or "cpu"
-BATCH_SIZE = 32  # (Section 4.2)
+BATCH_SIZE = 2  # (Section 4.2)
 NUM_EPOCHS = 300
-NUM_WORKERS = 4  # Number of parallel workers for data loading
+NUM_WORKERS = 2  # Number of parallel workers for data loading
 DATA_DIR = "./ShapeNet"
 MODEL_SAVE_PATH = "./checkpoints/"
 LOG_DIR = "./logs/"
