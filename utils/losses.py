@@ -32,6 +32,9 @@ class ReconstructionLoss(nn.Module):
             true_voxels (Tensor): Ground truth voxels from dataset,
                                   shape (B, res, res, res), values 0 or 1
         """
+        # Ensure target is float for BCE
+        if true_voxels.dtype != torch.float32 and true_voxels.dtype != torch.float64:
+            true_voxels = true_voxels.float()
         # BCE loss expects (B, *) shape
         return self.bce_loss(pred_voxels, true_voxels)
 
