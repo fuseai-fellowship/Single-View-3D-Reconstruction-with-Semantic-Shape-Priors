@@ -211,3 +211,5 @@ ShapeNet/
 
 #logs
 logs/
+
+*.ai
