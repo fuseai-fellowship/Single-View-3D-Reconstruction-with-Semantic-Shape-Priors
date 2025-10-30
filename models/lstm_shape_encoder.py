@@ -79,9 +79,9 @@ if __name__ == '__main__':
         cfg.VOXEL_RES, 
         cfg.VOXEL_RES, 
         cfg.VOXEL_RES
-    ).to(cfg.DEVICE)
+    ).to(torch.device(cfg.DEVICE))
     
-    lstm_encoder = LSTMShapeEncoder().to(cfg.DEVICE)
+    lstm_encoder = LSTMShapeEncoder().to(torch.device(cfg.DEVICE))
     
     print(f"Input sequence shape: {dummy_seq.shape}")
     

@@ -16,7 +16,7 @@ from utils.dataset import R2N2Dataset
 def main():
     # --- Setup ---
     # Set device
-    device = torch.device(cfg.DEVICE if torch.cuda.is_available() else "cpu")
+    device = cfg.DEVICE 
     print(f"Using device: {device}")
 
     # Create directories for logging and model saving
@@ -58,14 +58,14 @@ def main():
 
     # --- Model Initialization ---
     print("Initializing model...")
-    model = Mem3D().to(device)
+    model = Mem3D()
 
     # --- Trainer Initialization ---
     print("Initializing trainer...")
     trainer = Mem3DTrainer(
-        model=model, train_loader=train_loader, val_loader=val_loader, device=device
+        model=model, train_loader=train_loader, val_loader=val_loader
     )
 
-
+    trainer.fit()
 if __name__ == "__main__":
     main()

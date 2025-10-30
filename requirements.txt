@@ -5,3 +5,5 @@ tensorboardX
 matplotlib
 streamlit
 plotly
+tqdm
+tensorboard

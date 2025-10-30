@@ -208,3 +208,10 @@ __marimo__/
 
 # Dataset
 ShapeNet/
+
+#logs
+logs/
+
+*.ai
+
+checkpoints/
