@@ -213,3 +213,5 @@ ShapeNet/
 logs/
 
 *.ai
+
+checkpoints/
