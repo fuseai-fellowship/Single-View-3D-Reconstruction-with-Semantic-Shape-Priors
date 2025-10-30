@@ -7,6 +7,7 @@ from numpy import random
 from PIL import Image
 
 from .binvox_rw import read_as_3d_array
+import config as cfg
 
 IMG_EXTENSIONS = [
     ".jpg",
@@ -138,7 +139,8 @@ class R2N2Dataset(data.Dataset):
         self.cur_index_within_batch += 1
         # the specific images within the chosen model are chosen at random
         filenames = random.choice(self.im_list[index], self.cur_n_views, replace=False)
-        imgs = torch.zeros(self.cur_n_views, 3, 128, 128)
+        # Allocate image tensor matching configured transform output size
+        imgs = torch.zeros(self.cur_n_views, 3, cfg.IMG_SIZE, cfg.IMG_SIZE)
         label = torch.zeros(32, 32, 32, dtype=torch.long)
         try:
             labeltmp = self.loader_label(
@@ -161,11 +163,13 @@ class R2N2Dataset(data.Dataset):
                     )
                 )
                 if self.transform is not None:
-                    imgs[view, :, :, :] = self.transform(imgtmp)
+                    transformed = self.transform(imgtmp)
+                    # transformed expected shape: (3, cfg.IMG_SIZE, cfg.IMG_SIZE)
+                    imgs[view, :, :, :] = transformed
 
-        except:
-            print("PROBLEM WITH LOADING A BATCH")
-            pass
+        except Exception as e:
+            print("PROBLEM WITH LOADING A BATCH", str(e))
+            # Return zeros but still consistent shapes to avoid crashing the loader
 
         return {"imgs": imgs, "label": label}
 
