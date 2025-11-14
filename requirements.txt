@@ -7,3 +7,8 @@ streamlit
 plotly
 tqdm
 tensorboard
+streamlit
+plotly
+torch
+torchvision
+pillow
